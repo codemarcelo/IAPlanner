@@ -1,8 +1,12 @@
 package com.planeer.iAPlanner.service.impl;
 
+import com.planeer.iAPlanner.model.dto.ParticipantsDTO;
 import com.planeer.iAPlanner.model.dto.ScheduleDTO;
+import com.planeer.iAPlanner.model.persistence.domains.ParticipantsEntity;
 import com.planeer.iAPlanner.model.persistence.domains.ScheduleEntity;
+import com.planeer.iAPlanner.model.persistence.repositories.ParticipantsRepository;
 import com.planeer.iAPlanner.model.persistence.repositories.ScheduleRepository;
+import com.planeer.iAPlanner.service.DeepSeekService;
 import com.planeer.iAPlanner.service.ScheduleService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,21 +21,43 @@ import java.util.Optional;
 public class ScheduleServiceImpl implements ScheduleService {
 
     @Autowired
-    private final ScheduleRepository scheduleRepository;
+    private ScheduleRepository scheduleRepository;
+
+    @Autowired
+    private ParticipantsRepository participantsRepository;
 
     public ScheduleServiceImpl(ScheduleRepository scheduleRepository) {
         this.scheduleRepository = scheduleRepository;
     }
 
     public Void saveSchedule(ScheduleDTO scheduleDTO) {
-        // Converte o DTO para a entidade
+
         ScheduleEntity scheduleEntity = new ScheduleEntity();
         scheduleEntity.setTitle(scheduleDTO.getTitle());
         scheduleEntity.setDescription(scheduleDTO.getDescription());
-        scheduleEntity.setDateTime(LocalDateTime.parse(scheduleDTO.getDateTime())); // Converte para LocalDateTime
+        scheduleEntity.setDateTime(LocalDateTime.parse(scheduleDTO.getDateTime()));
+        scheduleEntity.setLocalAddress(scheduleDTO.getLocalAddress());
+        scheduleEntity.setReferencePoint(scheduleDTO.getReferencePoint());
 
-        // Salva no banco de dados
+        scheduleEntity = scheduleRepository.save(scheduleEntity);
+
+        final ScheduleEntity finalScheduleEntity = scheduleEntity;
+
+        List<ParticipantsEntity> participantsEntities = scheduleDTO.getParticipants().stream().map(participantDTO -> {
+            ParticipantsEntity participantsEntity = new ParticipantsEntity();
+            participantsEntity.setName(participantDTO.getName());
+            participantsEntity.setPhone(participantDTO.getPhone());
+            participantsEntity.setEmail(participantDTO.getEmail());
+            participantsEntity.setSchedule(finalScheduleEntity); // Associa o agendamento ao participante
+            return participantsEntity;
+        }).toList();
+
+        participantsRepository.saveAll(participantsEntities);
+
+        scheduleEntity.setParticipants(participantsEntities);
+
         scheduleRepository.save(scheduleEntity);
+
         return null;
     }
 
@@ -55,11 +81,24 @@ public class ScheduleServiceImpl implements ScheduleService {
     public List<ScheduleDTO> getAllSchedules() {
         List<ScheduleEntity> scheduleEntities = scheduleRepository.findAll();
         return scheduleEntities.stream().map(entity -> {
-            ScheduleDTO dto = new ScheduleDTO();
-            dto.setTitle(entity.getTitle());
-            dto.setDescription(entity.getDescription());
-            dto.setDateTime(String.valueOf(entity.getDateTime()));
-            return dto;
+            ScheduleDTO scheduleDTO = new ScheduleDTO();
+            scheduleDTO.setTitle(entity.getTitle());
+            scheduleDTO.setDescription(entity.getDescription());
+            scheduleDTO.setDateTime(String.valueOf(entity.getDateTime()));
+            scheduleDTO.setLocalAddress(entity.getLocalAddress());
+            scheduleDTO.setReferencePoint(entity.getReferencePoint());
+
+            if (entity.getParticipants() != null) {
+                scheduleDTO.setParticipants(entity.getParticipants().stream().map(participant -> {
+                    ParticipantsDTO participantDTO = new ParticipantsDTO();
+                    participantDTO.setName(participant.getName());
+                    participantDTO.setPhone(participant.getPhone());
+                    participantDTO.setEmail(participant.getEmail());
+                    return participantDTO;
+                }).toList());
+            }
+
+            return scheduleDTO;
         }).toList();
     }
 }

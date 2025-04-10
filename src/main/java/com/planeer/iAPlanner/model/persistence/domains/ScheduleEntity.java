@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Entity
@@ -23,4 +24,13 @@ public class ScheduleEntity {
 
     @Column(name = "DH_AGENDAMENTO")
     private LocalDateTime dateTime; // Data e hora (ISO 8601)
+
+    @Column(name = "DS_ENDERECO")
+    private String localAddress;
+
+    @Column(name = "DS_PONTO_REFERENCIA")
+    private String referencePoint;
+
+    @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ParticipantsEntity> participants; // Lista de participantes
 }
