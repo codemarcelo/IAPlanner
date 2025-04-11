@@ -31,6 +31,10 @@ public class ScheduleEntity {
     @Column(name = "DS_PONTO_REFERENCIA")
     private String referencePoint;
 
+    @Lob
+    @Column(name = "DS_INFO_AGENDAMENTO", columnDefinition = "TEXT")
+    private String addInfoSchedule;
+
     @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ParticipantsEntity> participants; // Lista de participantes
 }

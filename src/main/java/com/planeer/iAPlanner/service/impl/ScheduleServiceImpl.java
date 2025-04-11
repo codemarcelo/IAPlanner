@@ -1,12 +1,13 @@
 package com.planeer.iAPlanner.service.impl;
 
+import com.planeer.iAPlanner.model.dto.GeminiResponseDTO;
 import com.planeer.iAPlanner.model.dto.ParticipantsDTO;
 import com.planeer.iAPlanner.model.dto.ScheduleDTO;
 import com.planeer.iAPlanner.model.persistence.domains.ParticipantsEntity;
 import com.planeer.iAPlanner.model.persistence.domains.ScheduleEntity;
 import com.planeer.iAPlanner.model.persistence.repositories.ParticipantsRepository;
 import com.planeer.iAPlanner.model.persistence.repositories.ScheduleRepository;
-import com.planeer.iAPlanner.service.DeepSeekService;
+import com.planeer.iAPlanner.service.GeminikService;
 import com.planeer.iAPlanner.service.ScheduleService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -25,6 +27,9 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     @Autowired
     private ParticipantsRepository participantsRepository;
+
+    @Autowired
+    GeminikService geminikService;
 
     public ScheduleServiceImpl(ScheduleRepository scheduleRepository) {
         this.scheduleRepository = scheduleRepository;
@@ -50,7 +55,12 @@ public class ScheduleServiceImpl implements ScheduleService {
             participantsEntity.setEmail(participantDTO.getEmail());
             participantsEntity.setSchedule(finalScheduleEntity); // Associa o agendamento ao participante
             return participantsEntity;
-        }).toList();
+        }).collect(Collectors.toList());
+
+
+        GeminiResponseDTO geminiResponseDTO = geminikService.callGeminiApi(scheduleDTO);
+
+        scheduleEntity.setAddInfoSchedule(geminiResponseDTO.getAdditionalInfo());
 
         participantsRepository.saveAll(participantsEntities);
 
@@ -87,6 +97,7 @@ public class ScheduleServiceImpl implements ScheduleService {
             scheduleDTO.setDateTime(String.valueOf(entity.getDateTime()));
             scheduleDTO.setLocalAddress(entity.getLocalAddress());
             scheduleDTO.setReferencePoint(entity.getReferencePoint());
+            scheduleDTO.setAddInfoSchedule(entity.getAddInfoSchedule());
 
             if (entity.getParticipants() != null) {
                 scheduleDTO.setParticipants(entity.getParticipants().stream().map(participant -> {
@@ -95,10 +106,10 @@ public class ScheduleServiceImpl implements ScheduleService {
                     participantDTO.setPhone(participant.getPhone());
                     participantDTO.setEmail(participant.getEmail());
                     return participantDTO;
-                }).toList());
+                }).collect(Collectors.toList()));
             }
 
             return scheduleDTO;
-        }).toList();
+        }).collect(Collectors.toList());
     }
 }

@@ -12,6 +12,7 @@ public class ScheduleDTO {
     private String dateTime;
     private String localAddress;
     private String referencePoint;
+    private String addInfoSchedule;
     private List<ParticipantsDTO> participants;
 
 }
