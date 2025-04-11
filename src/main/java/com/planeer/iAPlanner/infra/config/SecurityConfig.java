@@ -22,10 +22,12 @@ public class SecurityConfig {
                         .requestMatchers(new AntPathRequestMatcher("/api/schedules/addSchedule")).permitAll()
                         .requestMatchers(new AntPathRequestMatcher("/api/schedules/getSchedule/**")).permitAll()
                         .requestMatchers(new AntPathRequestMatcher("/api/schedules/getAllSchedules")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api/gemini/generate", "POST")).permitAll() // Nova linha adicionada
                         .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers(h2ConsoleMatcher)
+                        .ignoringRequestMatchers(new AntPathRequestMatcher("/api/gemini/generate")) // Opcional: desabilita CSRF para este endpoint
                         .disable() // Desabilita CSRF para simplificação (não recomendado em produção)
                 )
                 .headers(headers -> headers
