@@ -7,7 +7,7 @@ import com.planeer.iAPlanner.model.persistence.domains.ParticipantsEntity;
 import com.planeer.iAPlanner.model.persistence.domains.ScheduleEntity;
 import com.planeer.iAPlanner.model.persistence.repositories.ParticipantsRepository;
 import com.planeer.iAPlanner.model.persistence.repositories.ScheduleRepository;
-import com.planeer.iAPlanner.service.GeminikService;
+import com.planeer.iAPlanner.service.CallGeminiService;
 import com.planeer.iAPlanner.service.ScheduleService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +29,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private ParticipantsRepository participantsRepository;
 
     @Autowired
-    GeminikService geminikService;
+    CallGeminiService callGeminiService;
 
     public ScheduleServiceImpl(ScheduleRepository scheduleRepository) {
         this.scheduleRepository = scheduleRepository;
@@ -58,7 +58,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         }).collect(Collectors.toList());
 
 
-        GeminiResponseDTO geminiResponseDTO = geminikService.callGeminiApi(scheduleDTO);
+        GeminiResponseDTO geminiResponseDTO = callGeminiService.callGeminiApi(scheduleDTO);
 
         scheduleEntity.setAddInfoSchedule(geminiResponseDTO.getAdditionalInfo());
 

@@ -2,7 +2,9 @@ package com.planeer.iAPlanner.service.impl;
 
 import com.planeer.iAPlanner.model.dto.GeminiResponseDTO;
 import com.planeer.iAPlanner.model.dto.ScheduleDTO;
-import com.planeer.iAPlanner.service.GeminikService;
+import com.planeer.iAPlanner.service.CallGeminiService;
+import com.planeer.iAPlanner.service.ListModelsCallGeminiService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -11,7 +13,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Collections;
 
 @Service
-public class GeminiServiceImpl implements GeminikService {
+public class CallGeminiServiceImpl implements CallGeminiService {
 
     private static final String PROMPT_TEMPLATE =
             "Analise estas informações de agendamento e forneça:\n" +
@@ -36,52 +38,31 @@ public class GeminiServiceImpl implements GeminikService {
     @Value("${gemini.model}")
     private String model;
 
+    @Autowired
+    ListModelsCallGeminiService listModelsCallGeminiService;
+
     private final RestTemplate restTemplate;
 
-    public GeminiServiceImpl(RestTemplate restTemplate) {
+    public CallGeminiServiceImpl(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
     @Override
     public GeminiResponseDTO callGeminiApi(ScheduleDTO scheduleDTO) {
-        // Verificar modelos disponíveis
-        String listModelsUrl = baseUrl + "/v1beta/models";
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("x-goog-api-key", apiKey);
+        // Verificar se o modelo está disponível
+        ResponseEntity<String> modelResponse = listModelsCallGeminiService.verifyModelAvailability();
 
-        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
-
-        try {
-            ResponseEntity<String> modelResponse = restTemplate.exchange(
-                    listModelsUrl,
-                    HttpMethod.GET,
-                    requestEntity,
-                    String.class
-            );
-
-            // Exibir os modelos disponíveis no log
-            System.out.println("Modelos disponíveis: " + modelResponse.getBody());
-
-            // Verificar se o modelo desejado está disponível
-            if (!modelResponse.getBody().contains("\"" + model + "\"")) {
-                throw new IllegalArgumentException("O modelo '" + model + "' não está disponível.");
-            }
-        } catch (Exception e) {
-            return createErrorResponse("Erro ao verificar modelos disponíveis: " + e.getMessage());
-        }
-
-        // Construir o prompt com os campos disponíveis no ScheduleDTO
-        String formattedPrompt = String.format(PROMPT_TEMPLATE,
-                scheduleDTO.getLocalAddress(),
-                scheduleDTO.getReferencePoint(),
-                scheduleDTO.getDescription());
+        // Construir o prompt
+        String formattedPrompt = buildPrompt(scheduleDTO);
 
         // Configurar headers para Gemini API
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("x-goog-api-key", apiKey);
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         // Corpo da requisição para Gemini
-        String requestBody = buildGeminiRequestBody(formattedPrompt);
+        String requestBody = buildGeminiRequestBody(formattedPrompt, modelResponse);
 
         // URL completa
         String apiUrl = baseUrl + (baseUrl.endsWith("/") ? "" : "/") + endpoint;
@@ -102,7 +83,14 @@ public class GeminiServiceImpl implements GeminikService {
         }
     }
 
-    private String buildGeminiRequestBody(String prompt) {
+    private String buildPrompt(ScheduleDTO scheduleDTO) {
+        return String.format(PROMPT_TEMPLATE,
+                scheduleDTO.getLocalAddress(),
+                scheduleDTO.getReferencePoint(),
+                scheduleDTO.getDescription());
+    }
+
+    private String buildGeminiRequestBody(String prompt, ResponseEntity<String> modelResponse) {
         return String.format("""
     {
         "model": "%s",
@@ -116,7 +104,7 @@ public class GeminiServiceImpl implements GeminikService {
             "maxOutputTokens": 1000
         }
     }
-    """, model, prompt.replace("\"", "\\\""));
+    """, modelResponse, prompt.replace("\"", "\\\""));
     }
 
     private GeminiResponseDTO mapGeminiResponseToDto(String apiResponse) {
