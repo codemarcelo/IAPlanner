@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class GeminiServiceImpl implements GeminiService {
 
     private static final String PROMPT_TEMPLATE =
-            "Analise estas informações de agendamento e forneça:\n" +
+            "Analise estas informações de agendamento e forneça em 10 linha sem mensagem redundante:\n" +
                     "1. Lembretes importantes para os participantes\n" +
                     "2. Orientação sobre como chegar ao local\n" +
                     "3. Melhor rota considerando pontos de referência\n" +

@@ -8,6 +8,7 @@ import com.planeer.iAPlanner.model.persistence.repositories.ParticipantsReposito
 import com.planeer.iAPlanner.model.persistence.repositories.ScheduleRepository;
 import com.planeer.iAPlanner.service.GeminiService;
 import com.planeer.iAPlanner.service.ScheduleService;
+import com.planeer.iAPlanner.service.SmsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,12 @@ import java.util.stream.Collectors;
 @Service
 public class ScheduleServiceImpl implements ScheduleService {
 
+    private static final String SMS_MESSAGE =
+                  "\n- Evento: %s\n" +
+                    "- Local: %s\n" +
+                    "- Horario e Data: %s\n";
+
+
     @Autowired
     private ScheduleRepository scheduleRepository;
 
@@ -29,6 +36,9 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     @Autowired
     GeminiService geminiService;
+
+    @Autowired
+    SmsService smsService;
 
     public ScheduleServiceImpl(ScheduleRepository scheduleRepository) {
         this.scheduleRepository = scheduleRepository;
@@ -52,7 +62,9 @@ public class ScheduleServiceImpl implements ScheduleService {
             participantsEntity.setName(participantDTO.getName());
             participantsEntity.setPhone(participantDTO.getPhone());
             participantsEntity.setEmail(participantDTO.getEmail());
-            participantsEntity.setSchedule(finalScheduleEntity); // Associa o agendamento ao participante
+            participantsEntity.setSchedule(finalScheduleEntity);
+            String smsMessage = buildMessage(scheduleDTO);
+            smsService.sendSms(participantDTO.getPhone(), smsMessage);
             return participantsEntity;
         }).collect(Collectors.toList());
 
@@ -110,5 +122,13 @@ public class ScheduleServiceImpl implements ScheduleService {
 
             return scheduleDTO;
         }).collect(Collectors.toList());
+    }
+
+    private String buildMessage(ScheduleDTO scheduleDTO) {
+        return String.format(SMS_MESSAGE,
+                scheduleDTO.getTitle(),
+                scheduleDTO.getLocalAddress(),
+                scheduleDTO.getDateTime());
+
     }
 }
